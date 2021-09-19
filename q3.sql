@@ -11,13 +11,17 @@ SET @v7 = 'EE';
 SET @v8 = 'MAT';
 
 -- 3. List the names of students who have taken course v4 (crsCode).
+
+# Original query
 EXPLAIN -- ANALYZE
 SELECT name FROM Student WHERE id IN (SELECT studId FROM Transcript WHERE crsCode = @v4);
 
+# New query
+EXPLAIN -- ANALYZE
 SELECT s.name 
 FROM Student as S INNER JOIN
 Transcript as T ON t.studID = s.id
-WHERE crsCode = @v4;
+AND t.crsCode = @v4;
 
 ALTER TABLE Student
 ADD INDEX idx_id (id);
@@ -39,9 +43,9 @@ FROM:
 		 -> Table scan on <subquery2> (cost=0.05 rows=10) (actual time=0.001..0.001 rows=2 loops=1)
    
 TO:
--> Nested loop inner join (cost=1.10 rows=2) (actual time=0.050..0.056 rows=2 loops=1)
-   -> Filter: (`<subquery2>`.studId is not null) (cost=0.40 rows=2) (actual time=0.037..0.038 rows=2 loops=1)
-	  -> Table scan on <subquery2> (cost=0.40 rows=2) (actual time=0.001..0.001 rows=2 loops=1)
-		 -> Materialize with deduplication (cost=0.70 rows=2) (actual time=0.036..0.037 rows=2 loops=1)
+-> Nested loop inner join (cost=1.40 rows=2) (actual time=0.031..0.043 rows=2 loops=1)
+   -> Filter: (t.studId is not null) (cost=0.70 rows=2) (actual time=0.019..0.022 rows=2 loops=1)
+	  -> Index lookup on T using idx_crsCode (crsCode=(@v4)) (cost=0.70 rows=2) (actual time=0.018..0.021 rows=2 loops=1)
+		 -> Index lookup on S using idx_id (id=t.studId) (cost=0.30 rows=1) (actual time=0.007..0.009 rows=1 loops=2)
 -> 
 */
