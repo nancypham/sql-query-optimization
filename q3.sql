@@ -23,6 +23,7 @@ FROM Student as S INNER JOIN
 Transcript as T ON t.studID = s.id
 AND t.crsCode = @v4;
 
+# Indices added
 ALTER TABLE Student
 ADD INDEX idx_id (id);
 
