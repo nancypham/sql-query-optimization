@@ -14,11 +14,9 @@ SET @v8 = 'MAT';
 EXPLAIN -- ANALYZE
 SELECT name FROM Student WHERE id BETWEEN @v2 AND @v3;
 
--- Doesn't actually speed it up that much
+# Index added
 ALTER TABLE Student
 ADD INDEX idx_id (id);
-
-SHOW INDEX FROM Student FROM springboardopt;
 
 /*
 1. What was the bottleneck? Full table scan

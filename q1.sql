@@ -11,7 +11,6 @@ SET @v7 = 'EE';
 SET @v8 = 'MAT';
 
 -- 1. List the name of the student with id equal to v1 (id).
-# Original query
 EXPLAIN -- ANALYZE
 SELECT name FROM Student WHERE id = @v1;
 

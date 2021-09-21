@@ -20,6 +20,7 @@ SELECT name FROM Student,
 	WHERE Transcript.crsCode = alias1.crsCode AND Transcript.semester = alias1.semester) as alias2
 WHERE Student.id = alias2.studId;
 
+# Indexes added
 CREATE INDEX idx_profId ON Teaching (profId);
 CREATE INDEX idx_semester ON Transcript (semester);
 CREATE INDEX idx_name ON Professor (name);

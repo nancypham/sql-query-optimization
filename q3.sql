@@ -11,7 +11,6 @@ SET @v7 = 'EE';
 SET @v8 = 'MAT';
 
 -- 3. List the names of students who have taken course v4 (crsCode).
-
 # Original query
 EXPLAIN -- ANALYZE
 SELECT name FROM Student WHERE id IN (SELECT studId FROM Transcript WHERE crsCode = @v4);
@@ -23,7 +22,7 @@ FROM Student AS S
 	INNER JOIN Transcript AS T ON t.studID = s.id
 	AND t.crsCode = @v4;
 
-# Indices added
+# Indexes added
 ALTER TABLE Student
 ADD INDEX idx_id (id);
 
