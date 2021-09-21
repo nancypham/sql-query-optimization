@@ -19,9 +19,9 @@ SELECT name FROM Student WHERE id IN (SELECT studId FROM Transcript WHERE crsCod
 # New query
 EXPLAIN -- ANALYZE
 SELECT s.name 
-FROM Student as S INNER JOIN
-Transcript as T ON t.studID = s.id
-AND t.crsCode = @v4;
+FROM Student AS S 
+	INNER JOIN Transcript AS T ON t.studID = s.id
+	AND t.crsCode = @v4;
 
 # Indices added
 ALTER TABLE Student
