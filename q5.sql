@@ -18,23 +18,15 @@ SELECT * FROM Student,
 	(SELECT studId FROM Transcript, Course WHERE deptId = @v7 AND Course.crsCode = Transcript.crsCode)) as alias
 WHERE Student.id = alias.studId;
 
-# New query
-EXPLAIN -- ANALYZE
-SELECT * FROM Student, 
-	(SELECT studId FROM Transcript AS T, Course AS C
-		WHERE C.deptId = @v6 AND C.deptId != @v7 
-        AND C.crsCode = T.crsCode) AS A
-WHERE Student.id = A.studId;
-
 # Indexes added
-CREATE INDEX idx_deptId ON Course (deptId);
-CREATE INDEX idx_crsCode ON Transcript (crsCode);
 CREATE INDEX idx_id ON Student (id);
+CREATE INDEX idx_dept_crs ON Course (deptId, crsCode);
+CREATE INDEX idx_crsCode ON Transcript (crsCode);
 
 /*
 1. What was the bottleneck? 1) Filtering for whether transcript.studId exists in subquery (subquery in alias table) and 2) Finding where student.id matches transcript.studId
 2. How did you identify it? EXPLAIN and EXPLAIN ANALYZE
-3. What method you chose to resolve the bottleneck? 1) Turn subquery into WHERE clause, 2) Add indexes
+3. What method you chose to resolve the bottleneck? Add indexes
 */
 
 /*
@@ -60,11 +52,19 @@ FROM:
 					 -> Table scan on Course (cost=10.25 rows=100) (actual time=0.003..0.056 rows=100 loops=30)
 
 TO:
--> Nested loop inner join (cost=22.11 rows=27) (actual time=0.077..0.340 rows=30 loops=1)
-   -> Nested loop inner join (cost=12.73 rows=27) (actual time=0.036..0.198 rows=30 loops=1)
-	  -> Filter: (c.crsCode is not null) (cost=3.35 rows=26) (actual time=0.022..0.065 rows=26 loops=1)
-		 -> Index lookup on C using idx_deptId (deptId=(@v6)) (cost=3.35 rows=26) (actual time=0.021..0.061 rows=26 loops=1)
-	  -> Filter: (t.studId is not null) (cost=0.26 rows=1) (actual time=0.003..0.004 rows=1 loops=26)
-		 -> Index lookup on T using idx_crsCode (crsCode=c.crsCode) (cost=0.26 rows=1) (actual time=0.003..0.004 rows=1 loops=26)
-	  -> Index lookup on Student using idx_id (id=t.studId) (cost=0.25 rows=1) (actual time=0.004..0.004 rows=1 loops=30)
+-> Nested loop inner join (cost=23.18 rows=27) (actual time=0.199..0.445 rows=30 loops=1)
+   -> Nested loop inner join (cost=13.79 rows=27) (actual time=0.189..0.347 rows=30 loops=1)
+	  -> Filter: (course.crsCode is not null) (cost=4.41 rows=26) (actual time=0.015..0.035 rows=26 loops=1)
+		 -> Index lookup on Course using idx_dept_crs (deptId=(@v6)) (cost=4.41 rows=26) (actual time=0.015..0.031 rows=26 loops=1)
+	  -> Filter: (<in_optimizer>(transcript.studId,transcript.studId in (select #3) is false) and (transcript.studId is not null)) (cost=0.26 rows=1) (actual time=0.010..0.012 rows=1 loops=26)
+		 -> Index lookup on Transcript using idx_crsCode (crsCode=course.crsCode) (cost=0.26 rows=1) (actual time=0.003..0.004 rows=1 loops=26)
+         -> Select #3 (subquery in condition; run only once)
+			-> Filter: ((transcript.studId = `<materialized_subquery>`.studId)) (actual time=0.001..0.001 rows=0 loops=31)
+			   -> Limit: 1 row(s) (actual time=0.001..0.001 rows=0. loops=31)
+				  -> Materialize with deduplication (cost=16.93 rows=33) (actual time=0.006..0.006 rows=0 loops=31)
+					 -> Nested loop inner join (cost=16.93 rows=33) (actual time=0.010..0.138 rows=34 loops=1)
+						-> Filter: (course.crsCode is not null)) (cost=5.39 rows=32) (actual time=0.004..0.028 rows=32 loops=1)
+						   -> Index lookup on Course using idx_dept_crs (deptId=(@v7)) (cost=5.39 rows=32) (actual time=0.004..0.024 rows=32 loops=1)
+						-> Index lookup on Transcript using idx_crsCode (crsCode=course.crsCode) (cost=0.26 rows=1) (actual time=0.002..0.003 rows=1 loops=32)
+   -> Index lookup on Student using idx_id (id=transcript.studId) (cost=0.25 rows=1) (actual time=0.003..0.003 rows=1 loops=30)
 */
